@@ -66,7 +66,9 @@ func pasteCopy() {
 	if EOL() {
 		idx--
 		lineIdx--
-		lineCharIdx = len(lines[lineIdx])
+		if len(lines) >= lineIdx {
+			lineCharIdx = len(lines[lineIdx])
+		}
 	}
 	if contents, found := pasteables[identifier]; found {
 		lines[lineIdx] = contents
