@@ -1335,7 +1335,7 @@ func advanceTimes(times int) {
 
 // advanceUntil advances the character cursor until we reach `ch`.
 func advanceUntil(ch rune) {
-	for char != ch && char != -1 {
+	for !isCurrentChar(ch) && char != -1 {
 		advance()
 	}
 }
@@ -1344,7 +1344,7 @@ func advanceUntil(ch rune) {
 // However, it expects to reach this character by no more than `maxAdvances` advances and throws a parser error if it doesn't.
 func advanceUntilExpect(ch rune, maxAdvances int) {
 	var advances int
-	for char != ch && char != -1 {
+	for !isCurrentChar(ch) && char != -1 {
 		if advances > maxAdvances {
 			parserError(fmt.Sprintf("Expected %c", ch))
 		}
@@ -1355,7 +1355,7 @@ func advanceUntilExpect(ch rune, maxAdvances int) {
 
 func isToken(token tokenType) bool {
 	var tokenChar = []rune(token)[0]
-	if char != tokenChar {
+	if !isCurrentChar(tokenChar) {
 		return false
 	}
 	advance()
