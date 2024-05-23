@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"sourcecode.social/reiver/go-eol"
 	"strconv"
 	"strings"
 	"unicode"
@@ -144,7 +145,7 @@ func printParsingDebug() {
 
 func parse() {
 	switch {
-	case char == ' ' || char == '\t' || char == '\n':
+	case char == ' ' || char == '\t' || EOL():
 		advance()
 	case tokenAhead(Question):
 		collectQuestion()
@@ -232,7 +233,7 @@ func lookAheadUntil(until rune) string {
 	var ahead strings.Builder
 	var nextIdx = idx
 	var nextChar rune
-	for nextChar != until {
+	for !cmpChar(nextChar, until) {
 		if len(chars) <= nextIdx {
 			break
 		}
@@ -411,7 +412,7 @@ func collectArguments() (arguments []actionArgument) {
 	var argIndex = 0
 	var param parameterDefinition
 	for {
-		if char == ')' || char == '\n' || char == -1 {
+		if char == ')' || EOL() || char == -1 {
 			break
 		}
 		if argIndex < paramsSize {
@@ -1284,6 +1285,30 @@ func collectAction(identifier *string) (value action) {
 	return
 }
 
+// EOL returns bool based on if current char is an EOL.
+func EOL() bool {
+	return eol.IsEOL(char)
+}
+
+func isCurrentChar(ch rune) bool {
+	if ch == '\n' {
+		return eol.IsEOL(char)
+	}
+
+	return ch == char
+}
+
+func cmpChar(ch1 rune, ch2 rune) bool {
+	if ch1 == '\n' {
+		return eol.IsEOL(ch2)
+	}
+	if ch2 == '\n' {
+		return eol.IsEOL(ch1)
+	}
+
+	return ch1 == ch2
+}
+
 // advance advances the character cursor.
 func advance() {
 	idx++
@@ -1293,7 +1318,7 @@ func advance() {
 	}
 
 	char = chars[idx]
-	if char == '\n' {
+	if EOL() {
 		lineCharIdx = 0
 		lineIdx++
 	} else {
@@ -1388,7 +1413,7 @@ func seek(mov *int, reverse bool) (requestedChar rune) {
 		nextChar += *mov
 	}
 	requestedChar = getChar(nextChar)
-	for requestedChar == '\t' || requestedChar == '\n' {
+	for requestedChar == '\t' || eol.IsEOL(requestedChar) {
 		if reverse {
 			nextChar--
 		} else {
@@ -1417,7 +1442,7 @@ func firstChar() {
 }
 
 func skipWhitespace() {
-	for char == ' ' || char == '\t' || char == '\n' {
+	for char == ' ' || char == '\t' || EOL() {
 		advance()
 	}
 }

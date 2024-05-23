@@ -63,7 +63,7 @@ func collectCopy() {
 
 func pasteCopy() {
 	var identifier = collectIdentifier()
-	if char == '\n' {
+	if EOL() {
 		idx--
 		lineIdx--
 		lineCharIdx = len(lines[lineIdx])
