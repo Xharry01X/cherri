@@ -1326,6 +1326,25 @@ func advance() {
 	}
 }
 
+// reverse reverses the character cursor.
+func reverse() {
+	if char == -1 {
+		return
+	}
+	if lineCharIdx == 0 && lineIdx == 0 {
+		return
+	}
+	if lineCharIdx == 0 {
+		lineIdx--
+		idx--
+		lineCharIdx = len(lines[lineIdx])
+		return
+	}
+
+	lineCharIdx--
+	idx--
+}
+
 // advanceTimes advances the character cursor by `times`.
 func advanceTimes(times int) {
 	for i := 0; i < times; i++ {
