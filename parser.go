@@ -1335,9 +1335,9 @@ func reverse() {
 	}
 	if lineCharIdx == 0 {
 		lineIdx--
-		lineCharIdx = len(lines[lineIdx])
 	}
 
+	lineCharIdx = len(lines[lineIdx])
 	char = chars[idx]
 }
 
