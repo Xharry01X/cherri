@@ -63,7 +63,7 @@ func collectCopy() {
 
 func pasteCopy() {
 	var identifier = collectIdentifier()
-	if EOL() || char == -1 {
+	if isEOL() || char == -1 {
 		reverse()
 	}
 

@@ -145,7 +145,7 @@ func printParsingDebug() {
 
 func parse() {
 	switch {
-	case char == ' ' || char == '\t' || EOL():
+	case isWhitespace():
 		advance()
 	case tokenAhead(Question):
 		collectQuestion()
@@ -412,7 +412,7 @@ func collectArguments() (arguments []actionArgument) {
 	var argIndex = 0
 	var param parameterDefinition
 	for {
-		if char == ')' || EOL() || char == -1 {
+		if char == ')' || isEOL() || char == -1 {
 			break
 		}
 		if argIndex < paramsSize {
@@ -436,9 +436,7 @@ func collectArgument(argIndex *int, param *parameterDefinition, paramsSize *int)
 	if char == ',' {
 		advance()
 	}
-	if char == ' ' {
-		advance()
-	}
+	skipWhitespace()
 	var valueType tokenType
 	var value any
 	if strings.Contains(lookAheadUntil('\n'), ",") {
@@ -952,9 +950,7 @@ func collectConditional() {
 		}
 		advance()
 		collectValue(&variableTwoType, &variableTwoValue, ' ')
-		if char == ' ' {
-			advance()
-		}
+		skipWhitespace()
 		if !isToken(LeftBrace) {
 			collectValue(&variableThreeType, &variableThreeValue, '{')
 			advance()
@@ -1285,9 +1281,19 @@ func collectAction(identifier *string) (value action) {
 	return
 }
 
-// EOL returns bool based on if current char is an EOL.
-func EOL() bool {
+// isEOL returns bool based on if current char is an isEOL.
+func isEOL() bool {
 	return eol.IsEOL(char)
+}
+
+func skipWhitespace() {
+	for isWhitespace() {
+		advance()
+	}
+}
+
+func isWhitespace() bool {
+	return unicode.IsSpace(char) || isEOL() || char == '\t' || char == ' ' || char == '\n'
 }
 
 func isCurrentChar(ch rune) bool {
@@ -1318,7 +1324,7 @@ func advance() {
 	}
 
 	char = chars[idx]
-	if EOL() {
+	if isEOL() {
 		lineCharIdx = 0
 		lineIdx++
 	} else {
@@ -1428,7 +1434,7 @@ func seek(mov *int, reverse bool) (requestedChar rune) {
 		nextChar += *mov
 	}
 	requestedChar = getChar(nextChar)
-	for requestedChar == '\t' || eol.IsEOL(requestedChar) {
+	for isWhitespace() {
 		if reverse {
 			nextChar--
 		} else {
@@ -1454,12 +1460,6 @@ func firstChar() {
 	lineCharIdx = 0
 	idx = -1
 	advance()
-}
-
-func skipWhitespace() {
-	for char == ' ' || char == '\t' || EOL() {
-		advance()
-	}
 }
 
 func printVariables() {
