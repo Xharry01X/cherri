@@ -14,7 +14,7 @@
 
 The main goal is to make it trivial and practical to create large Shortcut projects (within the limits of Shortcuts) and maintain them long-term.
 
-[![Hello World Example](https://github.com/electrikmilk/cherri/assets/4368524/4205308b-4358-47c9-a1b4-66930c8db1c2)](https://playground.cherrilang.org)
+[![Hello World Example](https://github.com/electrikmilk/cherri/assets/4368524/8532e8f7-245b-47f3-9691-8b1eac5774c7)](https://playground.cherrilang.org)
 
 ### 🌟 Top Features
 
@@ -38,6 +38,7 @@ The main goal is to make it trivial and practical to create large Shortcut proje
 - 🛝 [Playground](https://playground.cherrilang.org/) - Try out Cherri on any platform, preview the result, and export signed Shortcuts
 - 🖥️ [macOS IDE](https://github.com/electrikmilk/cherri-macos-app) - Defines Cherri file type, write and build Shortcuts on Mac with a GUI
 - 📄 [Documentation](https://cherrilang.org/language/) - Learn Cherri or how to contribute
+- 🔍 [Glyph Search](https://glyphs.cherrilang.org/) - Search glyphs you can use in Cherri!
 - 🧑‍💻 [Code Tour](https://youtu.be/gU8TsI96uww)
 - 🗺️ [_Idealistic_ roadmap](https://github.com/electrikmilk/cherri/wiki/Project-Roadmap)
 - ❓ [FAQ](https://cherrilang.org/faq)

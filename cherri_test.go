@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/electrikmilk/args-parser"
 	"os"
@@ -60,6 +61,13 @@ func TestActionList(_ *testing.T) {
 	for identifier := range actions {
 		fmt.Println("{label: '" + identifier + "', type: 'function', detail: 'action'},")
 	}
+}
+
+func TestGlyphList(_ *testing.T) {
+	var data, jsonErr = json.Marshal(glyphs)
+	handle(jsonErr)
+
+	fmt.Println(string(data))
 }
 
 func compile() {
