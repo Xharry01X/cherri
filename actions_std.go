@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Brandon Jordan
+ * Copyright (c) Cherri
  */
 
 package main
@@ -7,12 +7,13 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"reflect"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // FIXME: Some of these actions have a value with a set list values for an arguments,
@@ -47,7 +48,6 @@ var appSplitRatios = []string{"half", "thirdByTwo"}
 var calculationOperations = []string{"x^2", "х^3", "x^у", "e^x", "10^x", "In(x)", "log(x)", "√x", "∛x", "x!", "sin(x)", "cos(X)", "tan(x)", "abs(x)"}
 var statisticsOperations = []string{"Average", "Minimum", "Maximum", "Sum", "Median", "Mode", "Range", "Standard Deviation"}
 var ipTypes = []string{"IPv4", "IPv6"}
-var shortcutDetails = []string{"Folder", "Icon", "Action Count", "File Size", "File Extension", "Creation Date", "File Path", "Last Modified Date", "Name"}
 var engines = []string{"Amazon", "Bing", "DuckDuckGo", "eBay", "Google", "Reddit", "Twitter", "Yahoo!", "YouTube"}
 var webpageDetails = []string{"Page Contents", "Page Selection", "Page URL", "Name"}
 var urlComponents = []string{"Scheme", "User", "Password", "Host", "Port", "Path", "Query", "Fragment"}
@@ -101,6 +101,20 @@ var dateFormats = []string{"None", "Short", "Medium", "Long", "Relative", "RFC 2
 var timeFormats = []string{"None", "Short", "Medium", "Long", "Relative"}
 var timerDurations = []string{"hr", "min", "sec"}
 var weekdays = []string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+var fileLabelsMap = map[string]int{
+	"red":    6,
+	"orange": 7,
+	"yellow": 5,
+	"green":  2,
+	"blue":   4,
+	"purple": 3,
+	"gray":   1,
+}
+var fileLabels = []string{"red", "orange", "yellow", "green", "blue", "purple", "gray"}
+var filesSortBy = []string{"File Size", "File Extension", "Creation Date", "File Path", "Last Modified Date", "Name", "Random"}
+var pdfMergeBehaviors = []string{"Append", "Shuffle"}
+var cameras = []string{"Front", "Back"}
+var cameraQualities = []string{"Low", "Medium", "High"}
 
 var toggleAlarmIntent = appIntent{
 	name:                "Clock",
@@ -125,6 +139,18 @@ var actions = map[string]*actionDefinition{
 					key:      "WFDateActionMode",
 					dataType: Text,
 					value:    "Specified Date",
+				},
+			}
+		},
+	},
+	"currentDate": {
+		identifier: "date",
+		addParams: func(_ []actionArgument) []plistData {
+			return []plistData{
+				{
+					key:      "WFDateActionMode",
+					dataType: Text,
+					value:    "Current Date",
 				},
 			}
 		},
@@ -1134,6 +1160,230 @@ var actions = map[string]*actionDefinition{
 			},
 		},
 	},
+	"prependToFile": {
+		identifier: "file.append",
+		parameters: []parameterDefinition{
+			{
+				name:      "filePath",
+				validType: String,
+				key:       "WFFilePath",
+			},
+			{
+				name:      "text",
+				validType: String,
+				key:       "WFInput",
+			},
+		},
+		addParams: func(_ []actionArgument) []plistData {
+			return []plistData{
+				{
+					key:      "WFAppendFileWriteMode",
+					dataType: Boolean,
+					value:    "Prepend",
+				},
+			}
+		},
+	},
+	"appendToFile": {
+		identifier: "file.append",
+		parameters: []parameterDefinition{
+			{
+				name:      "filePath",
+				validType: String,
+				key:       "WFFilePath",
+			},
+			{
+				name:      "text",
+				validType: String,
+				key:       "WFInput",
+			},
+		},
+		addParams: func(_ []actionArgument) []plistData {
+			return []plistData{
+				{
+					key:      "WFAppendFileWriteMode",
+					dataType: Boolean,
+					value:    "Append",
+				},
+			}
+		},
+	},
+	"labelFile": {
+		identifier: "file.label",
+		parameters: []parameterDefinition{
+			{
+				name:      "file",
+				validType: Var,
+				key:       "WFInput",
+			},
+			{
+				name:      "color",
+				validType: String,
+				optional:  false,
+				enum:      fileLabels,
+			},
+		},
+		addParams: func(args []actionArgument) []plistData {
+			var color = strings.ToLower(getArgValue(args[1]).(string))
+
+			return []plistData{
+				{
+					key:      "WFLabelColorNumber",
+					dataType: Number,
+					value:    fileLabelsMap[color],
+				},
+			}
+		},
+	},
+	"filterFiles": {
+		identifier: "filter.files",
+		parameters: []parameterDefinition{
+			{
+				name:      "files",
+				validType: Var,
+				key:       "WFContentItemInputParameter",
+			},
+			{
+				name:      "limit",
+				validType: Integer,
+				key:       "WFContentItemLimitNumber",
+				optional:  true,
+			},
+			{
+				name:      "sortBy",
+				validType: String,
+				key:       "WFContentItemSortProperty",
+				enum:      filesSortBy,
+				optional:  true,
+			},
+		},
+		addParams: func(args []actionArgument) []plistData {
+			if len(args) != 1 {
+				return []plistData{
+					{
+						key:      "WFContentItemLimitEnabled",
+						dataType: Boolean,
+						value:    true,
+					},
+				}
+			}
+
+			return []plistData{}
+		},
+	},
+	"optimizePDF": {
+		identifier: "compresspdf",
+		parameters: []parameterDefinition{
+			{
+				name:      "pdfFile",
+				validType: Var,
+				key:       "WFInput",
+			},
+		},
+	},
+	"getPDFText": {
+		identifier: "gettextfrompdf",
+		parameters: []parameterDefinition{
+			{
+				name:      "pdfFile",
+				validType: Var,
+				key:       "WFInput",
+			},
+			{
+				name:         "richText",
+				validType:    Bool,
+				defaultValue: false,
+				optional:     true,
+			},
+			{
+				name:         "combinePages",
+				validType:    Bool,
+				key:          "WFCombinePages",
+				defaultValue: true,
+				optional:     true,
+			},
+			{
+				name:      "headerText",
+				validType: String,
+				key:       "WFGetTextFromPDFPageHeader",
+				optional:  true,
+			},
+			{
+				name:      "footerText",
+				validType: String,
+				key:       "WFGetTextFromPDFPageFooter",
+				optional:  true,
+			},
+		},
+		addParams: func(args []actionArgument) []plistData {
+			if len(args) != 1 {
+				var richText = getArgValue(args[1]).(bool)
+				if richText {
+					return []plistData{
+						{
+							key:      "WFGetTextFromPDFTextType",
+							dataType: Text,
+							value:    "Rich Text",
+						},
+					}
+				}
+			}
+
+			return []plistData{
+				{
+					key:      "WFGetTextFromPDFTextType",
+					dataType: Text,
+					value:    "Text",
+				},
+			}
+		},
+	},
+	"makePDF": {
+		parameters: []parameterDefinition{
+			{
+				name:      "input",
+				validType: Var,
+				key:       "WFInput",
+			},
+			{
+				name:         "includeMargin",
+				validType:    Bool,
+				key:          "WFPDFIncludeMargin",
+				defaultValue: false,
+				optional:     true,
+			},
+			{
+				name:         "mergeBehavior",
+				validType:    String,
+				key:          "WFPDFDocumentMergeBehavior",
+				defaultValue: "Append",
+				enum:         pdfMergeBehaviors,
+				optional:     true,
+			},
+		},
+	},
+	"makeSpokenAudio": {
+		identifier: "makespokenaudiofromtext",
+		parameters: []parameterDefinition{
+			{
+				name:      "text",
+				validType: String,
+				key:       "WFInput",
+			},
+			{
+				name:      "rate",
+				validType: Integer,
+				key:       "WFSpeakTextRate",
+				optional:  true,
+			},
+			{
+				name:      "pitch",
+				validType: Integer,
+				key:       "WFSpeakTextPitch",
+				optional:  true,
+			},
+		},
+	},
 	"createFolder": { // TODO: Writing to locations other than the Shortcuts folder.
 		identifier: "file.createfolder",
 		parameters: []parameterDefinition{
@@ -1156,12 +1406,89 @@ var actions = map[string]*actionDefinition{
 				key:          "Recursive",
 				name:         "recursive",
 				validType:    Bool,
+				defaultValue: false,
+				optional:     true,
+			},
+		},
+	},
+	"containsText": {
+		identifier: "text.match",
+		parameters: []parameterDefinition{
+			{
+				name:      "subject",
+				validType: String,
+				key:       "text",
+			},
+			{
+				name:      "text",
+				validType: String,
+			},
+			{
+				name:         "caseSensitive",
+				validType:    Bool,
+				key:          "WFMatchTextCaseSensitive",
+				defaultValue: true,
+				optional:     true,
+			},
+		},
+		addParams: func(args []actionArgument) []plistData {
+			var textArg = args[1]
+			if textArg.valueType == Var {
+				args[1] = actionArgument{
+					valueType: String,
+					value:     fmt.Sprintf("^{%s}", textArg.value),
+				}
+			} else {
+				args[1].value = fmt.Sprintf("^%s", textArg.value)
+			}
+
+			return []plistData{
+				argumentValue("WFMatchTextPattern", args, 1),
+			}
+		},
+	},
+	"matchText": {
+		identifier: "text.match",
+		parameters: []parameterDefinition{
+			{
+				name:      "regexPattern",
+				validType: String,
+				key:       "WFMatchTextPattern",
+			},
+			{
+				name:      "text",
+				validType: String,
+				key:       "text",
+			},
+			{
+				name:         "caseSensitive",
+				validType:    Bool,
+				key:          "WFMatchTextCaseSensitive",
 				defaultValue: true,
 				optional:     true,
 			},
 		},
 	},
-	"matchedTextGroupIndex": {
+	"getMatchGroups": {
+		identifier: "text.match.getgroup",
+		parameters: []parameterDefinition{
+			{
+				name:      "matches",
+				validType: Var,
+				key:       "matches",
+			},
+		},
+		addParams: func(_ []actionArgument) []plistData {
+			return []plistData{
+				{
+					key:      "WFGetGroupType",
+					dataType: Text,
+					value:    "All Groups",
+				},
+			}
+		},
+	},
+	"getMatchGroup": {
 		identifier: "text.match.getgroup",
 		parameters: []parameterDefinition{
 			{
@@ -2285,18 +2612,21 @@ var actions = map[string]*actionDefinition{
 				validType:    String,
 				key:          "WFCameraCaptureDevice",
 				defaultValue: "Front",
+				enum:         cameras,
 			},
 			{
 				name:         "quality",
 				validType:    String,
 				key:          "WFCameraCaptureQuality",
-				defaultValue: "Medium",
+				defaultValue: "High",
+				enum:         cameraQualities,
 			},
 			{
-				name:         "startImmediately",
-				validType:    Bool,
+				name:         "recordingStart",
+				validType:    String,
 				key:          "WFRecordingStart",
-				defaultValue: false,
+				defaultValue: "Immediately",
+				enum:         recordingStarts,
 			},
 		},
 	},
@@ -2564,6 +2894,7 @@ var actions = map[string]*actionDefinition{
 				name:         "position",
 				validType:    String,
 				key:          "WFImageCropPosition",
+				enum:         cropPositions,
 				optional:     true,
 				defaultValue: "Center",
 			},
@@ -2578,7 +2909,6 @@ var actions = map[string]*actionDefinition{
 				name:         "height",
 				validType:    String,
 				key:          "WFImageCropHeight",
-				enum:         cropPositions,
 				optional:     true,
 				defaultValue: "100",
 			},
@@ -2649,6 +2979,34 @@ var actions = map[string]*actionDefinition{
 				name:      "query",
 				validType: String,
 				key:       "WFSearchTerm",
+			},
+		},
+	},
+	"getPodcasts": {
+		identifier: "getpodcastsfromlibrary",
+	},
+	"playPodcast": {
+		parameters: []parameterDefinition{
+			{
+				name:      "podcast",
+				validType: Var,
+				key:       "WFPodcastShow",
+			},
+		},
+	},
+	"getPodcastDetail": {
+		identifier: "properties.podcastshow",
+		parameters: []parameterDefinition{
+			{
+				name:      "podcast",
+				validType: Var,
+				key:       "WFInput",
+			},
+			{
+				name:      "detail",
+				validType: String,
+				key:       "WFContentItemPropertyName",
+				enum:      []string{"Feed URL", "Genre", "Episode Count", "Artist", "Store ID", "Store URL", "Artwork", "Artwork URL", "Name"},
 			},
 		},
 	},
@@ -2902,15 +3260,13 @@ var actions = map[string]*actionDefinition{
 				validType: Variable,
 				key:       "WFInput",
 			},
-		},
-		addParams: func(_ []actionArgument) []plistData {
-			return []plistData{
-				{
-					key:      "WFCameraRollSelectedGroup",
-					dataType: Text,
-					value:    "Recents",
-				},
-			}
+			{
+				name:         "album",
+				validType:    String,
+				key:          "WFCameraRollSelectedGroup",
+				defaultValue: "Recents",
+				optional:     true,
+			},
 		},
 	},
 	"play": {
@@ -4815,22 +5171,6 @@ var actions = map[string]*actionDefinition{
 		},
 		minVersion: 16.4,
 	},
-	"shortcutDetail": {
-		identifier: "properties.workflow",
-		parameters: []parameterDefinition{
-			{
-				name:      "detail",
-				validType: String,
-				key:       "WFContentItemPropertyName",
-				enum:      shortcutDetails,
-			},
-			{
-				name:      "shortcut",
-				validType: Variable,
-				key:       "WFInput",
-			},
-		},
-	},
 	"airdrop": {
 		identifier: "airdropdocument",
 		parameters: []parameterDefinition{
@@ -5385,12 +5725,11 @@ var actions = map[string]*actionDefinition{
 			}
 
 			var image = getArgValue(args[2])
-			if reflect.TypeOf(image).String() != stringType {
-				parserError("Image path for VCard must be a string literal")
-			}
-			var iconFile = getArgValue(args[2]).(string)
-			if _, err := os.Stat(iconFile); os.IsNotExist(err) {
-				parserError(fmt.Sprintf("File '%s' does not exist!", iconFile))
+			if reflect.TypeOf(image).String() == stringType {
+				var iconFile = getArgValue(args[2]).(string)
+				if _, err := os.Stat(iconFile); os.IsNotExist(err) {
+					parserError(fmt.Sprintf("File '%s' does not exist!", iconFile))
+				}
 			}
 		},
 		make: func(args []actionArgument) []plistData {
@@ -5400,12 +5739,24 @@ var actions = map[string]*actionDefinition{
 			wrapVariableReference(&subtitle)
 			var vcard strings.Builder
 			vcard.WriteString(fmt.Sprintf("BEGIN:VCARD\nVERSION:3.0\nN;CHARSET=utf-8:%s\nORG:%s\n", title, subtitle))
+
 			if len(args) > 2 {
-				var iconFile = getArgValue(args[2]).(string)
-				var bytes, readErr = os.ReadFile(iconFile)
-				handle(readErr)
-				vcard.WriteString(fmt.Sprintf("PHOTO;ENCODING=b:%s\n", base64.StdEncoding.EncodeToString(bytes)))
+				var photo string
+				var image = getArgValue(args[2])
+				if reflect.TypeOf(image).String() != stringType && args[2].valueType == Variable {
+					photo = fmt.Sprintf("{%s}", args[2].value)
+				} else {
+					var iconFile = getArgValue(args[2]).(string)
+					var bytes, readErr = os.ReadFile(iconFile)
+					handle(readErr)
+					photo = base64.StdEncoding.EncodeToString(bytes)
+				}
+
+				if photo != "" {
+					vcard.WriteString(fmt.Sprintf("PHOTO;ENCODING=b:%s\n", photo))
+				}
 			}
+
 			vcard.WriteString("END:VCARD")
 			args[0] = actionArgument{
 				valueType: String,
@@ -5480,6 +5831,71 @@ var actions = map[string]*actionDefinition{
 					value:    "Set",
 				},
 			}
+		},
+	},
+	"getShazamDetail": {
+		identifier: "properties.shazam",
+		parameters: []parameterDefinition{
+			{
+				name:      "input",
+				validType: Var,
+				key:       "WFInput",
+			},
+			{
+				name:      "detail",
+				validType: String,
+				key:       "WFContentItemPropertyName",
+				enum:      []string{"Apple Music ID", "Artist", "Title", "Is Explicit", "Lyrics Snippet", "Lyric Snippet Synced", "Artwork", "Video URL", "Shazam URL", "Apple Music URL", "Name"},
+			},
+		},
+	},
+	"springBoard": {
+		identifier: "openapp",
+		make: func(_ []actionArgument) []plistData {
+			return []plistData{
+				{
+					key:      "WFAppIdentifier",
+					dataType: Text,
+					value:    "com.apple.springboard",
+				},
+				{
+					key:      "WFSelectedApp",
+					dataType: Dictionary,
+					value: []plistData{
+						{
+							key:      "BundleIdentifier",
+							dataType: Text,
+							value:    "com.apple.springboard",
+						},
+						{
+							key:      "Name",
+							dataType: Text,
+							value:    "SpringBoard",
+						},
+						{
+							key:      "TeamIdentifier",
+							dataType: Text,
+							value:    "0000000000",
+						},
+					},
+				},
+			}
+		},
+	},
+	"getShortcutDetail": {
+		identifier: "properties.workflow",
+		parameters: []parameterDefinition{
+			{
+				name:      "shortcut",
+				validType: Var,
+				key:       "WFInput",
+			},
+			{
+				name:      "detail",
+				validType: String,
+				key:       "WFContentItemPropertyName",
+				enum:      []string{"Folder", "Icon", "Action Count", "File Size", "File Extension Creation Date", "File Path", "Last Modified Date", "Name"},
+			},
 		},
 	},
 }

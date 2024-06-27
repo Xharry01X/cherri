@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Brandon Jordan
+ * Copyright (c) Cherri
  */
 
 package main
@@ -83,4 +83,15 @@ func validReference(identifier string) bool {
 	}
 
 	return false
+}
+
+func getVariableValue(identifier string) (*variableValue, bool) {
+	if value, found := globals[identifier]; found {
+		return &value, true
+	}
+	if value, found := variables[identifier]; found {
+		return &value, true
+	}
+
+	return nil, false
 }

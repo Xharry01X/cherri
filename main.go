@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Brandon Jordan
+ * Copyright (c) Cherri
  */
 
 package main
@@ -40,7 +40,7 @@ func main() {
 			for identifier, definition := range actions {
 				setCurrentAction(identifier, definition)
 				fmt.Println(generateActionDefinition(parameterDefinition{}, true, true))
-				fmt.Print("\n")
+				fmt.Print("\n---\n\n")
 			}
 		} else {
 			actionsSearch()

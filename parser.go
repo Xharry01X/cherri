@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Brandon Jordan
+ * Copyright (c) Cherri
  */
 
 package main
@@ -62,6 +62,8 @@ func initParse() {
 	parseCopyPastes()
 	parseCustomActions()
 
+	writeProcessed()
+
 	preParsing = false
 	for char != -1 {
 		parse()
@@ -85,6 +87,23 @@ func initParse() {
 	if args.Using("debug") {
 		fmt.Println(ansi("Done.", green) + "\n")
 	}
+}
+
+func writeProcessed() {
+	if !args.Using("debug") {
+		return
+	}
+	if len(included) == 0 && len(customActions) == 0 && len(pasteables) == 0 {
+		return
+	}
+
+	var path = fmt.Sprintf("%s%s_processed.cherri", relativePath, workflowName)
+	fmt.Printf("Writing processed version to %s...", path)
+
+	var writeErr = os.WriteFile(path, []byte(contents), 0600)
+	handle(writeErr)
+
+	fmt.Println(ansi("Done.", green))
 }
 
 func printParsingDebug() {
@@ -153,12 +172,12 @@ func parse() {
 		collectDefinition()
 	case tokenAhead(Import):
 		collectImport()
-	case isToken(At):
+	case isChar('@'):
 		collectVariable(false)
 	case tokenAhead(Constant):
 		advance()
 		collectVariable(true)
-	case isToken(ForwardSlash):
+	case isChar('/'):
 		collectComment()
 	case tokenAhead(Repeat):
 		collectRepeat()
@@ -194,7 +213,7 @@ func reachable() {
 	var lastActionIdentifier = lastToken.value.(action).ident
 	var stoppers = []string{"stop", "output", "mustOutput", "outputOrClipboard"}
 	if slices.Contains(stoppers, lastActionIdentifier) {
-		parserWarning(fmt.Sprintf("Statement appears to be unreachable or does not loop as %s() was called outside of conditional.", lastActionIdentifier))
+		parserWarning(fmt.Sprintf("Dead actions: Statement appears to be unreachable or does not loop as %s() was called outside of conditional.", lastActionIdentifier))
 	}
 }
 
@@ -358,7 +377,7 @@ func checkInlineVars(value *string) {
 		}
 		var identifier = match[1]
 		if !validReference(identifier) {
-			parserError(fmt.Sprintf("Inline var '%s' does not exist!", identifier))
+			parserError(fmt.Sprintf("Undefined reference '%s'", identifier))
 		}
 	}
 }
@@ -427,8 +446,7 @@ func collectArguments() (arguments []actionArgument) {
 func collectArgument(argIndex *int, param *parameterDefinition, paramsSize *int) (argument actionArgument) {
 	if *argIndex == *paramsSize && !param.infinite {
 		parserError(
-			fmt.Sprintf("Too many arguments for action %s()\n\n%s",
-				currentActionIdentifier,
+			fmt.Sprintf("Too many arguments\n\n%s",
 				generateActionDefinition(parameterDefinition{}, false, false),
 			),
 		)
@@ -457,7 +475,7 @@ func collectArgument(argIndex *int, param *parameterDefinition, paramsSize *int)
 func collectComment() {
 	var collect = args.Using("comments")
 	var comment strings.Builder
-	if isToken(ForwardSlash) {
+	if isChar('/') {
 		if collect {
 			comment.WriteString(collectUntil('\n'))
 		} else {
@@ -679,9 +697,11 @@ func collectGlyphDefinition() {
 		handle(hexErr)
 		iconGlyph = glyphInt
 	} else {
-		fmt.Println(ansi("Build an icon for your Shortcut at https://glyphs.cherrilang.org/.", cyan))
-		args.Args["glyph"] = collectGlyph
-		glyphsSearch()
+		if !args.Using("no-ansi") {
+			fmt.Println(ansi("Build an icon for your Shortcut at https://glyphs.cherrilang.org/.", cyan))
+			args.Args["glyph"] = collectGlyph
+			glyphsSearch()
+		}
 		parserError(fmt.Sprintf("Invalid icon glyph '%s'", collectGlyph))
 	}
 }
@@ -923,7 +943,7 @@ func collectConditional() {
 	var groupingUUID = groupStatement(Conditional)
 
 	var conditionType string
-	if isToken(Exclamation) {
+	if isChar('!') {
 		conditionType = conditions[Empty]
 	} else {
 		conditionType = conditions[Any]
@@ -937,7 +957,7 @@ func collectConditional() {
 	var variableThreeValue any
 	collectValue(&variableOneType, &variableOneValue, ' ')
 
-	if !isToken(LeftBrace) {
+	if !isChar('{') {
 		var collectConditional = collectUntil(' ')
 		var collectConditionalToken = tokenType(collectConditional)
 		if condition, found := conditions[collectConditionalToken]; found {
@@ -948,12 +968,12 @@ func collectConditional() {
 		advance()
 		collectValue(&variableTwoType, &variableTwoValue, ' ')
 		skipWhitespace()
-		if !isToken(LeftBrace) {
+		if !isChar('{') {
 			collectValue(&variableThreeType, &variableThreeValue, '{')
 			advance()
 		}
 	}
-	isToken(LeftBrace)
+	isChar('{')
 
 	tokens = append(tokens, token{
 		typeof:    Conditional,
@@ -1218,12 +1238,12 @@ func collectObject() string {
 		}
 		if !insideString {
 			if char == '{' {
-				innerObjectDepth += 1
+				innerObjectDepth++
 			} else if char == '}' {
 				if innerObjectDepth == 0 {
 					break
 				}
-				innerObjectDepth -= 1
+				innerObjectDepth--
 			}
 		}
 		jsonStr.WriteRune(char)
@@ -1371,8 +1391,8 @@ func advanceUntilExpect(ch rune, maxAdvances int) {
 	}
 }
 
-func isToken(token tokenType) bool {
-	var tokenChar = []rune(token)[0]
+// If char is tokenChar, advance.
+func isChar(tokenChar rune) bool {
 	if !isCurrentChar(tokenChar) {
 		return false
 	}
@@ -1382,10 +1402,6 @@ func isToken(token tokenType) bool {
 
 func tokenAhead(token tokenType) bool {
 	var tokenLen = len(token)
-	if tokenLen == 1 && unicode.ToLower(char) == []rune(token)[0] {
-		advance()
-		return true
-	}
 	for i, tokenChar := range token {
 		if (i == 0 && unicode.ToLower(char) != tokenChar) || next(i) != tokenChar {
 			return false
@@ -1423,23 +1439,15 @@ func prev(mov int) rune {
 	return seek(&mov, true)
 }
 
-func seek(mov *int, reverse bool) (requestedChar rune) {
+func seek(mov *int, reverse bool) rune {
 	var nextChar = idx
 	if reverse {
 		nextChar -= *mov
 	} else {
 		nextChar += *mov
 	}
-	requestedChar = getChar(nextChar)
-	for isWhitespace() {
-		if reverse {
-			nextChar--
-		} else {
-			nextChar++
-		}
-		requestedChar = getChar(nextChar)
-	}
-	return
+
+	return getChar(nextChar)
 }
 
 func getChar(atIndex int) rune {
